@@ -1,0 +1,190 @@
+{% extends "base.html" %} {% block content %}
+
+<!-- nacitavacia obrazovka -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-text">Váš SEO report sa pripravuje...</div>
+  <div class="loading-wheel"></div>
+</div>
+
+<div class="container">
+  <div class="search-form-container">
+    <div class="row">
+      <div class="col-sm-12 col-md-12 text-center">
+        <h1>Otestujte SEO svojho webu</h1>
+        <h5>a získajte tipy na jeho zlepšenie</h5>
+      </div>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-sm-12 col-md-12 text-center">
+        <form id="search-form" class="search" action="">
+          <input id="url-input" type="url" placeholder="https://www.." required />
+          <button type="submit" class="search-button">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div id="results-container"></div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document
+      .getElementById("search-form")
+      .addEventListener("submit", function (event) {
+        event.preventDefault();
+        var url = document.getElementById("url-input").value;
+        runFunctionAfterUserInput(url);
+        showLoadingScreen();
+      });
+
+    var exportPdfBtn = document.getElementById("export-pdf-btn");
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener("click", function () {
+        triggerPrintDialog();
+      });
+    }
+
+    function showLoadingScreen() {
+      var loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.style.display = "flex";
+    }
+
+    function hideLoadingScreen() {
+      var loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.style.display = "none";
+    }
+
+    function runFunctionAfterUserInput(url) {
+      var req = new XMLHttpRequest();
+      req.open("POST", "/process_url");
+
+      req.setRequestHeader("Content-Type", "application/json");
+      req.onload = function () {
+        hideLoadingScreen();
+
+        if (req.status === 200) {
+          var response = JSON.parse(req.responseText);
+          displayResults(response.results);
+        } else {
+          var errorResponse = JSON.parse(req.responseText);
+
+          var url = document.getElementById("url-input").value;
+          document.getElementById("url-input").value = "";
+
+          var auditContainer = document.createElement("div");
+          auditContainer.classList.add("audit-container", "card");
+
+          var heading = document.createElement("h5");
+         
+          heading.textContent =
+            "⚠️ Adresa " + url + " je neplatná. Zadajte platnú adresu URL.";
+          auditContainer.appendChild(heading);
+
+          var resultsContainer = document.getElementById("results-container");
+
+          resultsContainer.innerHTML = "";
+
+          resultsContainer.appendChild(auditContainer);
+
+          console.error("Error:", errorResponse);
+        }
+      };
+
+      req.send(JSON.stringify({ url: url }));
+    }
+
+    function displayResults(results) {
+      var url = document.getElementById("url-input").value;
+
+      var auditContainer = document.createElement("div");
+      auditContainer.classList.add("audit-container", "card");
+
+      var heading = document.createElement("h4");
+      heading.setAttribute("id", "heading");
+      heading.textContent = "Report pre " + url;
+      document.getElementById("url-input").value = "";
+
+      var exportButton = document.createElement("button");
+      exportButton.textContent = "Exportuj do PDF";
+      exportButton.classList.add("export-pdf-button");
+      exportButton.setAttribute("id", "export-pdf-btn");
+
+      exportButton.onclick = function () {
+        triggerPrintDialog();
+      };
+
+      var auditWindow = document.createElement("div");
+      auditWindow.classList.add("audit-window");
+
+      var row = document.createElement("div");
+      row.classList.add("row");
+
+      var column = document.createElement("div");
+      column.classList.add("col-md-12");
+
+      auditContainer.appendChild(heading);
+      row.appendChild(column);
+      auditWindow.appendChild(row);
+      auditContainer.appendChild(auditWindow);
+
+      var resultsContainer = document.getElementById("results-container");
+      resultsContainer.innerHTML = "";
+      resultsContainer.appendChild(auditContainer);
+
+      if (results) {
+        results.forEach(function (result) {
+          const tipContainer = document.createElement("div");
+          tipContainer.classList.add("col-md-12", "col-sm-12", "tip-container");
+
+          const tipItem = document.createElement("p");
+
+          tipItem.textContent = "💡 " + result[3];
+
+          tipContainer.appendChild(tipItem);
+
+          var auditItem = document.createElement("div");
+          auditItem.classList.add("audit-item", "card-body", "col-md-12");
+
+          var auditItemTitle = document.createElement("h5");
+          auditItemTitle.classList.add("audit-item-title", "col-md-12");
+          auditItemTitle.textContent = result[0];
+
+          var testResultsList = document.createElement("ul");
+          testResultsList.classList.add("test-results", "col-md-12");
+
+          result.slice(2, 3).forEach(function (testResult) {
+            var testResultItem = document.createElement("li");
+            var icon = "";
+
+            if (result[1].includes("passed")) {
+              icon = '<i class="fa-regular fa-circle-check"></i> ';
+            } else {
+              icon = '<i class="fa-regular fa-circle-xmark"></i> ';
+            }
+
+            testResultItem.innerHTML = icon + testResult;
+            testResultsList.appendChild(testResultItem);
+          });
+
+          auditItem.classList.add("col-md-12");
+
+          auditItem.appendChild(auditItemTitle);
+          auditItem.appendChild(testResultsList);
+          auditItem.appendChild(tipContainer);
+          column.appendChild(auditItem);
+        });
+      }
+
+      auditContainer.appendChild(exportButton);
+
+      function triggerPrintDialog() {
+        window.print();
+      }
+    }
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %} {% block title %} Prieskumník kľúčových slov | SEO
+tester{% endblock %} {% block content %}
+
+<!-- nacitavacia obrazovka  -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-text">Kľúčové slová sa pripravujú...</div>
+  <div class="loading-wheel"></div>
+</div>
+
+<div class="container">
+  <div class="search-form-container">
+    <div class="row">
+      <div class="col-sm-12 text-center">
+        <h1>Získajte návrhy kľúčových slov</h1>
+        <h5>zadajte súvisiace kľúčové slová oddelené čiarkami</h5>
+      </div>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-sm-12 col-md-12 text-center">
+        <form id="search-form" class="search" action="">
+          <input id="keyword-input" type="text" placeholder="informatika, IT vysoká škola, štúdium IT" required />
+          <button type="submit" class="search-button">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="results-container"></div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document
+      .getElementById("search-form")
+      .addEventListener("submit", function (event) {
+        event.preventDefault();
+        var user_keywords = document.getElementById("keyword-input").value;
+
+        showLoadingScreen();
+
+        runFunctionAfterUserInput(user_keywords);
+      });
+
+    var exportPdfBtn = document.getElementById("export-pdf-btn");
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener("click", function () {
+        triggerPrintDialog();
+      });
+    }
+
+    function showLoadingScreen() {
+      var loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.style.display = "flex";
+    }
+
+    function hideLoadingScreen() {
+      var loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.style.display = "none";
+    }
+
+    function runFunctionAfterUserInput(user_keywords) {
+      var req = new XMLHttpRequest();
+      req.open("POST", "/process_keywords");
+      req.setRequestHeader("Content-Type", "application/json");
+      req.onload = function () {
+        hideLoadingScreen();
+
+        if (req.status === 200) {
+          var response = JSON.parse(req.responseText);
+          displayResults(response);
+        } else {
+          var errorResponse = JSON.parse(req.responseText);
+
+          document.getElementById("keyword-input").value = "";
+
+          var auditContainer = document.createElement("div");
+          auditContainer.classList.add("audit-container", "card");
+
+          var heading = document.createElement("h5");
+          heading.textContent = "⚠️ Pri spracovaní kľúčových slov sa vyskytol problém.";
+          auditContainer.appendChild(heading);
+
+          var resultsContainer = document.getElementById("results-container");
+
+          resultsContainer.innerHTML = "";
+
+          resultsContainer.appendChild(auditContainer);
+
+          console.error("Error:", errorResponse);
+        }
+      };
+      req.send(JSON.stringify({ user_keywords: user_keywords }));
+    }
+
+    function displayResults(results) {
+      var user_keywords = document.getElementById("keyword-input").value;
+      document.getElementById("keyword-input").value = "";
+      var auto_complete = results.keyword_suggestions["auto_complete"];
+
+      var related_searches = results.keyword_suggestions["related_searches"];
+
+      var related_questions = results.keyword_suggestions["related_questions"];
+
+      // audit kontajner
+      var auditContainer = document.createElement("div");
+      auditContainer.classList.add("audit-container", "card");
+
+      var heading = document.createElement("h5");
+      heading.textContent = "Zadané kľúčové slová ";
+      auditContainer.appendChild(heading);
+
+      var userKeywordsParagraph = document.createElement("p");
+      userKeywordsParagraph.textContent = user_keywords;
+      auditContainer.appendChild(userKeywordsParagraph);
+
+      var exportButton = document.createElement("button");
+      exportButton.textContent = "Export do PDF";
+      exportButton.classList.add("export-pdf-button");
+      exportButton.addEventListener("click", function () {
+        triggerPrintDialog();
+      });
+
+      // audit window
+      var auditWindow = document.createElement("div");
+      auditWindow.classList.add("audit-window");
+
+      var row = document.createElement("div");
+      row.classList.add("row");
+
+      var column = document.createElement("div");
+      column.classList.add("col-md-12");
+
+      row.appendChild(column);
+
+      auditWindow.appendChild(row);
+
+      if (auto_complete.length > 0) {
+        var heading = document.createElement("h5");
+        heading.textContent = "Návrhy kľúčových slov";
+        auditContainer.appendChild(heading);
+        var autoCompleteParagraph = document.createElement("p");
+        autoCompleteParagraph.textContent = auto_complete.join(", ");
+        auditContainer.appendChild(autoCompleteParagraph);
+      }
+
+      if (related_searches.length > 0) {
+        var heading = document.createElement("h5");
+        heading.textContent = "Podobné vyhľadávania";
+        auditContainer.appendChild(heading);
+        var relatedSearchesParagraph = document.createElement("p");
+        relatedSearchesParagraph.textContent = related_searches.join(", ");
+        auditContainer.appendChild(relatedSearchesParagraph);
+      }
+
+      if (related_questions.length > 0) {
+        var heading = document.createElement("h5");
+        heading.textContent = "Podobné otázky";
+        auditContainer.appendChild(heading);
+        var relatedQuestionsParagraph = document.createElement("p");
+        relatedQuestionsParagraph.textContent = related_questions.join(", ");
+        auditContainer.appendChild(relatedQuestionsParagraph);
+      }
+
+      var resultsContainer = document.getElementById("results-container");
+
+      resultsContainer.innerHTML = "";
+
+      resultsContainer.appendChild(auditContainer);
+
+      auditContainer.appendChild(exportButton);
+    }
+
+    function triggerPrintDialog() {
+      window.print();
+    }
+  });
+</script>
+
+{% endblock %}
