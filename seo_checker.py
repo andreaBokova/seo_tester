@@ -1788,7 +1788,7 @@ class SEOChecker:
 
 
 
-    
+    API_KEY = "AIzaSyB-cskFBtzSYgjjii5qJ-kVqvtUY6kRr-4"
     def get_page_speed_data(self, url):
         test_name = "Výkonnosť stránky podľa Google PageSpeed Insights"
         tip = "Keď sa webová stránka načíta rýchlo, poskytuje lepšiu používateľskú skúsenosť, čo vyhľadávače vysoko oceňujú. Skóre výkonnosti stránky Google počíta podľa 6 rôznych metrík. Medzi najdôležitejšie patria Total Blockig Time, Largest Contentful Paint a Cumulative Layout Shift. Skóre od 0-49 predstavuje slabé skôre, 50-89 priemerné a 90-100 dobré."
